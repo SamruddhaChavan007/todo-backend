@@ -1,6 +1,6 @@
 const pool = require("../config/db");
 
-async function listTodos(req, res) {
+async function listTodos(req, res, next) {
   const userId = req.userId;
 
   try {
@@ -17,13 +17,11 @@ async function listTodos(req, res) {
     return res.status(200).json({ todos: result.rows });
   } catch (error) {
     console.error("listTodos error:", error);
-    return res.status(500).json({
-      error: "Failed to fetch todos"
-    });
+    next(error);
   }
 }
 
-async function createTodo(req, res) {
+async function createTodo(req, res, next) {
     const userId = req.userId;
     const { title, description } = req.body;
 
@@ -45,11 +43,11 @@ async function createTodo(req, res) {
             todo: result.rows[0]
         });
     } catch (error) {
-        return res.status(500).json({ error: "Failed to create todo" });
+        next(error);
     }
 }
 
-async function updateTodo(req, res) {
+async function updateTodo(req, res, next) {
   const userId = req.userId;
   const todoId = Number(req.params.id);
   const { title, description, is_done } = req.body;
@@ -88,11 +86,11 @@ async function updateTodo(req, res) {
     return res.status(200).json({ todo: result.rows[0] });
   } catch (error) {
     console.error("updateTodo error:", error);
-    return res.status(500).json({ error: "Failed to update todo" });
+    next(error);
   }
 }
 
-async function deleteTodo(req, res) {
+async function deleteTodo(req, res, next) {
   const userId = req.userId;
   const todoId = Number(req.params.id);
 
@@ -121,7 +119,7 @@ async function deleteTodo(req, res) {
     });
   } catch (error) {
     console.error("deleteTodo error:", error);
-    return res.status(500).json({ error: "Failed to delete todo" });
+    next(error);
   }
 }
 

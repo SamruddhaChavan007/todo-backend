@@ -7,7 +7,7 @@ function getDeviceName(req) {
   return req.header("X-Device-Name") || req.header("User-Agent") || null;
 }
 
-async function register(req, res) {
+async function register(req, res, next) {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -46,11 +46,11 @@ async function register(req, res) {
     return res.status(201).json({ token: rawToken, userId });
   } catch (e) {
     console.error("REGISTER ERROR:", e);
-    return res.status(500).json({ error: e.message });
+    next(e);
   }
 }
 
-async function login(req, res) {
+async function login(req, res, next) {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -85,27 +85,25 @@ async function login(req, res) {
     return res.status(200).json({ token: rawToken, userId: rows[0].id });
   } catch (e) {
     console.error("LOGIN ERROR:", e);
-    return res.status(500).json({ error: e.message });
+    next(e);
   }
 }
 
-async function logout(req, res) {
+async function logout(req, res, next) {
   try {
-    const rawToken = req.header("X-Token");
-    if (!rawToken) {
-      return res.status(400).json({ error: "Missing X-Token" });
+    const tokenHash = req.tokenHash;
+    if (!tokenHash) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const tokenHash = sha256Hex(rawToken);
     await pool.query(
-      'UPDATE public.user_tokens SET revoked = true WHERE token_hash = $1',
+      "UPDATE public.user_tokens SET revoked = true WHERE token_hash = $1",
       [tokenHash]
     );
 
     return res.status(200).json({ status: "OK" });
   } catch (e) {
-    console.error("LOGOUT ERROR:", e);
-    return res.status(500).json({ error: e.message });
+    next(e);
   }
 }
 

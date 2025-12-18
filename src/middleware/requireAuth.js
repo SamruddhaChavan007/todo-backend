@@ -4,7 +4,6 @@ const { sha256Hex } = require("../utils/token");
 async function requireAuth(req, res, next) {
   try {
     const rawToken = req.header("X-Token");
-
     if (!rawToken) {
       return res.status(401).json({ error: "Missing X-Token" });
     }
@@ -28,16 +27,16 @@ async function requireAuth(req, res, next) {
     }
 
     req.userId = rows[0].user_id;
+    req.tokenHash = tokenHash;
 
-    await pool.query(
-      `UPDATE public.user_tokens SET last_used_at = NOW() WHERE token_hash = $1`,
-      [tokenHash]
-    );
+    // Best effort update (do not break request if it fails)
+    pool
+      .query(`UPDATE public.user_tokens SET last_used_at = NOW() WHERE token_hash = $1`, [tokenHash])
+      .catch(() => {});
 
     next();
   } catch (err) {
-    console.error("Auth middleware error:", err);
-    return res.status(500).json({ error: "Authentication failed" });
+    next(err);
   }
 }
 
