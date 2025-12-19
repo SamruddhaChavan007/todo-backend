@@ -4,19 +4,46 @@ async function listTodos(req, res, next) {
   const userId = req.userId;
 
   try {
+    const limit = req.query.limit ?? 50;
+    const offset = req.query.offset ?? 0;
+    const isDone = req.query.is_done;
+    const sort = req.query.sort ?? "created_at";
+    const order =
+      (req.query.order ?? "desc").toLowerCase() === "asc" ? "ASC" : "DESC";
+
+    const sortCol = ["created_at", "updated_at", "title"].includes(sort)
+      ? sort
+      : "created_at";
+
+    const params = [userId];
+    let whereClause = "WHERE user_id = $1";
+
+    if (typeof isDone === "boolean") {
+      params.push(isDone);
+      whereClause += ` AND is_done = $${params.length}`;
+    }
+
+    params.push(limit);
+    params.push(offset);
+
     const result = await pool.query(
       `
       SELECT id, title, description, is_done, created_at, updated_at
       FROM tasks
-      WHERE user_id = $1
-      ORDER BY created_at DESC
+      ${whereClause}
+      ORDER BY ${sortCol} ${order}
+      LIMIT $${params.length - 1}
+      OFFSET $${params.length}
       `,
-      [userId]
+      params
     );
 
-    return res.status(200).json({ todos: result.rows });
+    return res.status(200).json({
+      todos: result.rows,
+      limit,
+      offset,
+    });
   } catch (error) {
-    console.error("listTodos error:", error);
     next(error);
   }
 }

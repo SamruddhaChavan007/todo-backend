@@ -20,7 +20,7 @@ const listTodoSchema = z.object({
     .transform(v => v === "true")
     .optional(),
     sort: z.enum(["created_at", "updated_at", "title"]).optional(),
-    order: z.enum(["asc", "dsc"]).optional(),
+    order: z.enum(["asc", "desc"]).optional(),
 });
 
 module.exports = { createTodoSchema, updateTodoSchema, listTodoSchema };
